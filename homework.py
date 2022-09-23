@@ -37,7 +37,7 @@ handler.setFormatter(formatter)
 
 
 def send_message(bot, message):
-    """Отправка сообщения"""
+    """Отправка сообщения."""
     logger.info('Отправка сообщения')
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
@@ -48,7 +48,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(current_timestamp):
-    """ Запрос к API """
+    """Запрос к API."""
     timestamp = current_timestamp
     params = {'from_date': timestamp}
     try:
@@ -69,7 +69,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """Проверка ответа API"""
+    """Проверка ответа API."""
     homeworks = response['homeworks']
     if isinstance(homeworks, Dict):
         raise exceptions.HomeworkTypeError('Под ключем homeworks не dict')
@@ -77,7 +77,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """"Извлечение статуса"""
+    """Извлечение статуса."""
     if 'homework_name' not in homework or 'status' not in homework:
         raise KeyError('Отсутсвуют нужные ключи в homework')
     homework_name = homework['homework_name']
@@ -89,7 +89,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """Проверка токенов"""
+    """Проверка токенов."""
     return all([TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN])
 
 
