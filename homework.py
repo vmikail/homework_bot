@@ -2,9 +2,9 @@ import os
 import time
 import sys
 import logging
+import exceptions
 import requests
 import telegram
-import exceptions
 
 from typing import Dict
 from http import HTTPStatus
@@ -20,7 +20,7 @@ TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
-HOMEWORK_STATUSES = {
+HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
@@ -78,13 +78,15 @@ def check_response(response):
 
 def parse_status(homework):
     """Извлечение статуса."""
-    if 'homework_name' not in homework or 'status' not in homework:
-        raise KeyError('Отсутсвуют нужные ключи в homework')
+    if 'homework_name' not in homework:
+        raise KeyError('Отсутсвует ключ "homework_name" в ответе API')
+    if 'status' not in homework:
+        raise KeyError('Отсутсвует ключ "status" в ответе API')
     homework_name = homework['homework_name']
     homework_status = homework['status']
-    if homework_status not in HOMEWORK_STATUSES:
-        raise exceptions.HomeworkStatusError('Ошибка статуса')
-    verdict = HOMEWORK_STATUSES[homework_status]
+    if homework_status not in HOMEWORK_VERDICTS:
+        raise exceptions.HomeworkStatusError(f'Неизвестный статус работы: {homework_status}')
+    verdict = HOMEWORK_VERDICTS[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -96,7 +98,8 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        logger.critical('Токены не достопны')
+        logger.critical('Один или несколько токенов не доступны. Завершение работы.')
+        sys.exit(0)
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     previous_msg = ''
@@ -112,7 +115,7 @@ def main():
             else:
                 logger.debug(
                     f'Статус не изменился, повторный запрос через '
-                    f'{RETRY_TIME} минут'
+                    f'{RETRY_TIME} секунд'
                 )
             current_timestamp = int(time.time())
         except Exception as error:
@@ -123,6 +126,9 @@ def main():
                 previous_msg = message
         else:
             logger.debug('Повторный запрос')
+            current_timestamp = response.get(
+                'current_date', current_timestamp
+            )
         finally:
             time.sleep(RETRY_TIME)
 
