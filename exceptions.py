@@ -22,3 +22,13 @@ class JsonError(Exception):
 class APIAnswerKeyError(Exception):
     """Исключение для ошибок при использовании несуществующих ключей"""
     pass
+
+
+class SendMessageError(Exception):
+    """Исключение для ошибок отправки сообщения"""
+    pass
+
+
+class ApiConnectionError(Exception):
+    """Исключение для ошибок отправки сообщения"""
+    pass

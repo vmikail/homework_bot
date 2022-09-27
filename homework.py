@@ -6,7 +6,6 @@ import exceptions
 import requests
 import telegram
 
-from typing import Dict
 from http import HTTPStatus
 from dotenv import load_dotenv
 
@@ -42,7 +41,9 @@ def send_message(bot, message):
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
     except Exception as error:
-        raise Exception(f'Не удалось отправить сообщение: {error}')
+        raise exceptions.SendMessageError(
+            f'Не удалось отправить сообщение: {error}'
+        )
     else:
         logger.info('сообщение отправлено')
 
@@ -58,22 +59,40 @@ def get_api_answer(current_timestamp):
             params=params
         )
     except Exception as error:
-        raise Exception(f'Ошбика в enpoint запросе: {error}')
+        raise exceptions.ApiConnectionError(
+            f'Ошбика в enpoint запросе: {error}, '
+            f'параментры: {ENDPOINT}, {HEADERS}, {params}'
+        )
     if response.status_code != HTTPStatus.OK:
-        raise exceptions.APIResponseError('Неверный ответ API')
+        logger.critical(
+            f'Неверный ответ API. Код ответ: {response.status_code}'
+            f'параментры: {ENDPOINT}, {HEADERS}, {params}'
+        )
+        raise exceptions.APIResponseError(
+            f'Неверный ответ API. Код ответ: {response.status_code}'
+        )
     try:
         response = response.json()
     except Exception as error:
-        raise Exception(f'Ошибка получения json: {error}')
+        raise exceptions.JsonError(f'Ошибка получения json: {error}')
     return response
 
 
 def check_response(response):
     """Проверка ответа API."""
-    homeworks = response['homeworks']
-    if isinstance(homeworks, Dict):
-        raise exceptions.HomeworkTypeError('Под ключем homeworks не dict')
-    return homeworks
+    if type(response) is not dict:
+        raise TypeError('Под ключем homeworks не dict')
+    try:
+        homeworks = response['homeworks']
+    except KeyError:
+        logger.error('Отсутсвует ключ homeworks')
+        raise KeyError('Отсутсвует ключ homeworks')
+    try:
+        homework = homeworks[0]
+    except IndexError:
+        logger.error('Список домашних работ пуст')
+        raise IndexError('Список домашних работ пуст')
+    return homework
 
 
 def parse_status(homework):
@@ -85,7 +104,9 @@ def parse_status(homework):
     homework_name = homework['homework_name']
     homework_status = homework['status']
     if homework_status not in HOMEWORK_VERDICTS:
-        raise exceptions.HomeworkStatusError(f'Неизвестный статус работы: {homework_status}')
+        raise exceptions.HomeworkStatusError(
+            f'Неизвестный статус работы: {homework_status}'
+        )
     verdict = HOMEWORK_VERDICTS[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -98,7 +119,9 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        logger.critical('Один или несколько токенов не доступны. Завершение работы.')
+        logger.critical(
+            'Один или несколько токенов не доступны. Завершение работы.'
+        )
         sys.exit(0)
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
