@@ -3,6 +3,7 @@ import time
 import sys
 import logging
 import exceptions
+
 import requests
 import telegram
 
@@ -78,21 +79,17 @@ def get_api_answer(current_timestamp):
     return response
 
 
-def check_response(response):
+def check_response(response: dict):
     """Проверка ответа API."""
-    if type(response) is not dict:
-        raise TypeError('Под ключем homeworks не dict')
+    if not isinstance(response, dict):
+        raise TypeError('Под ключем response не dict')
     try:
         homeworks = response['homeworks']
     except KeyError:
-        logger.error('Отсутсвует ключ homeworks')
         raise KeyError('Отсутсвует ключ homeworks')
-    try:
-        homework = homeworks[0]
-    except IndexError:
-        logger.error('Список домашних работ пуст')
-        raise IndexError('Список домашних работ пуст')
-    return homework
+    if not isinstance(homeworks, list):
+        raise TypeError("homeworks не список")
+    return homeworks
 
 
 def parse_status(homework):
