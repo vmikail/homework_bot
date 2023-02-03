@@ -9,4 +9,4 @@
   
 ## Технологии
 - Python 3.8
-- Telegram-bot 13
+- Telegram-bot 13.7
